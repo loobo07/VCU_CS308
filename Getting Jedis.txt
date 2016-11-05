@@ -1,0 +1,7 @@
+http://search.maven.org/#search%7Cga%7C1%7Credis.clients
+	download the .jar from this 
+
+To use Jedis in Eclipse for Redis, when creating a new Java project that will use Reids select “Next” before “Finish,” and then under the “Libraries” tab
+select “Add External Jars…”
+
+Next, select the jedis .jar file that was just downloaded and select “Finish” to use the Redis Java client.
