@@ -1,0 +1,16 @@
+
+===========================Redis bulk key/value tester======================================
+
+This application will not work unless there is a running instance of Redis on your machine.
+
+To begin an instance of Redis, simply open terminal/command line and input the command:
+	"redis-server /usr/local/etc/redis.conf"
+	
+Once this is running and there is an active connection, open a new terminal/command line 
+window and type the command:
+	"redis-cli" 
+to launch the Redis command line interface.
+
+To see if the keys are present in Redis, type the command:
+	"KEYS *"
+in your redis-cli window.
