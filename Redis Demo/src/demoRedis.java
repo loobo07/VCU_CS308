@@ -1,5 +1,6 @@
 import redis.clients.jedis.Jedis;
 import java.io.*;
+import java.util.List;
 import java.util.Scanner;
 
 public class demoRedis extends textGenerator {
@@ -15,7 +16,6 @@ public class demoRedis extends textGenerator {
 		super(size);
 		
 	}
-
 	public static void main(String[]args) throws Exception, FileNotFoundException {
 		
 		@SuppressWarnings("resource")
@@ -56,12 +56,19 @@ public class demoRedis extends textGenerator {
 					value = splitLine[1];
 					
 					jedis.set(key, value);
-					
+					jedis.lpush("list", value);
 				}
-				
-				System.out.println(splitLine[0] + " " + splitLine[1]);
-				
 			}
+			
+			// Get the stored data and print it
+		    List<String> list = jedis.lrange("list", 0 ,5);
+		    for(int i=0; i<list.size(); i++) {
+		    	System.out.println("Stored string in redis:: "+list.get(i));
+		    }
+		    
+			System.out.println("The stored keys::" + jedis.keys("*"));
+			// gets the data that is in the key space
+			System.out.println("Stored string in redis:: "+ jedis.get("Key1"));
 			
 			System.out.println();
 			
