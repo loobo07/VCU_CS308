@@ -1,0 +1,123 @@
+Docker Swarm AWS 
+
+Network Requirements: 
+	Instances must be open to SSH calls, and also listening on ports:
+		TCP port 2377 for cluster management comms.
+		TCP and UDP port 7946 for comms among nodes
+		TCP and UDP port 4789 for overlay network traffic
+	This can be configured in the AWS console under ‘Add Security Groups.’
+
+	When creating new swarms, partition the active instances properly among
+		your availability zones (aim to have a balanced ratio of instances in 
+    different subnet zones).
+
+Installing Docker-Engine on EC2 instance
+
+Once you ssh into the instance, do the following:
+
+   Update package information and ensure that apt works w/ https method,
+	and that CA certificates are installed
+	1.) $ sudo apt-get update
+	2.) $ sudo apt-get install apt-transport-https ca-certificates
+  
+    Add GPG encryption key
+	3.) $ sudo apt-key adv —keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys <40 digit random number with high variance>
+   Create a new docker list file and add the Ubuntu version link to it 
+	(erase any other entries)
+	4.) $ sudo vi /etc/apt/sources.list.d/docker.list -> enter
+		repository link (deb [link] ubuntu-version main),
+		escape key, :x, enter to save and exit vi. 
+		->link for AWS Ubuntu: deb https://apt.dockerproject.org/repo ubuntu-xenial main
+    
+   Update the apt package with the new docker file added
+	5.) $ sudo apt-get update
+  
+   Purge the old repo if it exists (it will not in a new instance)
+	6.) $ sudo apt-get purge lxc-docker
+  
+   To verify apt is pulling from the right repository
+	7.) $ sudo apt-cache policy docker-engine
+  
+   Install recommended pre-reqs for the OS
+	8.) $ sudo apt-get install linux-image-extra-$(uname -r) 
+		-> this	allows use of the aufs storage driver
+    
+   Update the apt package again, and install docker engine
+	9.) $ sudo apt-get update
+	10.) $ sudo apt-get install docker-engine
+  
+   Start the Docker daemon and verify it is connected 
+	11.) $ sudo service docker start
+	12.) $ sudo docker run hello-world
+  
+   Docker Engine is ready for use - use as normal.
+
+————————————————————————————————————————————————————————————————————————————————————————————
+
+To use swarm, ssh (individually) into each EC2 instance (node).
+
+To ssh into an EC2 instance (to UBUNTU instance), 
+	1.) Verify the key.pem file is private (chmod 400 /path/my-key-pair.pem)
+	2.) Use the terminal command:
+		$ ssh -i /path/my-key-pair.pem ubuntu@[publicDNSlink] 
+
+To initialize a swarm, use the following command:
+	$ sudo docker swarm init --advertise-addr <MANAGER-IP>
+		->to expose the IP of the manager instance, use the command:
+			ifconfig
+
+Hostname is going to be equal to the private DNS in AWS.
+
+$ sudo docker node ls -> displays node information
+$ sudo docker network ls -> displays network information
+$ sudo docker network rm <network> -> removes a network from the swarm
+
+
+Each node should already be a member of the swarm and ready to 
+	take commands.
+
+Command to view ‘join swarm’ command: 
+	$ sudo docker swarm join-token worker
+
+Configure rolling update settings (—-update-delay (x)s) on service creation.
+	Can also be configured as a combination of hours/minutes/seconds
+		i.e. —-update-delay (x)h(y)m(z)s
+
+Setting a node to ‘drain’ status will halt rolling updates until activated 
+	again.
+
+Applies updates to all nodes
+$ sudo docker service update —image <image version> <name>
+
+Scales instances up 
+$ sudo docker service scale <name>=<num_instances>
+
+To create a dockerfile inside the node directory, enter
+	sudo docker info to find the path
+
+When creating a service, the —replicas<#> flag will tell the orchestrator how 
+	many times it should replicate the service.
+
+The —network<NETWORK_NAME> flag will tell the orchestrator which network
+	it should deploy the service to.
+
+The —name<NAME> flag will tell the orchestrator to name the service with the 
+	name provided.
+
+The —update-parallelism <#> flag denotes the number of simultaneous updates
+	that may be applied to the replicas.
+
+The —update-failure-action <ACTION> flag denotes the action of the 
+	scheduler when an update fails.
+
+Read-write binds can be important for data security, letting only a manager
+	write data, while managers and workers may both read data.
+		see: <https://docs.docker.com/engine/swarm/services/#/configure-mounts>
+	(note: use caution when binding, as doing so may introduce unwanted dependencies)
+
+To create a new network (namely overlay), use the following command format:
+	sudo docker network create —driver overlay —subnet<SUBNET_IP(optional,
+			 will use a predetermined default if none is provided)>
+	—opt encrypted <name>
+
+sudo apt install redis-tools will install Redis on an EC2 instance
